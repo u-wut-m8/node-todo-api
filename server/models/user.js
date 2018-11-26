@@ -41,8 +41,9 @@ UserSchema.methods.toJSON = function () {                                       
   return _.pick(userObject, ["_id", "email"]);
 }
 
+//.methods creates instance methods
 UserSchema.methods.generateAuthToken = function () {                                  //User defined generateAuthToken()
-  var user = this;
+  var user = this;                                                                    //this refers to individual document
   var access = "auth";
   var token = jwt.sign({_id: user._id.toHexString(), access}, "abc123").toString();
 
@@ -50,6 +51,25 @@ UserSchema.methods.generateAuthToken = function () {                            
 
   return user.save().then(() => {
     return token;
+  });
+};
+
+UserSchema.statics.findByToken = function (token) {                                    //.statics creates module methods
+  var User = this;                                                                     //this refers to the model itself
+  var decoded;
+
+  try {
+    decoded = jwt.verify(token, "abc123");
+  } catch (err){
+    return new Promise((resolve, reject) => {                                          //same as return Promise.reject();
+      reject();
+    });
+  }
+
+  return User.findOne({
+    "_id": decoded._id,
+    "tokens.token": token,
+    "tokens.access": "auth"
   });
 };
 
